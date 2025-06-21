@@ -35,6 +35,7 @@
         const rootText = {{ user_text | tojson | safe }};
         const width = document.getElementById('graph').clientWidth;
         const height = document.getElementById('graph').clientHeight;
+        const baseRadius = Math.max(20, Math.min(width, height) * 0.05);
         const nodes = [{id: 'root', label: rootText, fx: width/2, fy: height/2}];
         const links = [];
         data.forEach((c, i) => {
@@ -44,37 +45,58 @@
         const svg = d3.select('#graph').append('svg')
             .attr('width', width)
             .attr('height', height);
-        const simulation = d3.forceSimulation(nodes)
+
+        let simulation = d3.forceSimulation(nodes)
             .force('link', d3.forceLink(links).id(d => d.id).distance(120))
             .force('charge', d3.forceManyBody().strength(-300))
             .force('center', d3.forceCenter(width/2, height/2));
 
-        const link = svg.append('g')
-            .selectAll('line')
-            .data(links)
-            .enter().append('line')
-            .attr('stroke', '#ccc');
+        let link = svg.append('g').selectAll('line');
+        let node = svg.append('g').selectAll('g');
 
-        const node = svg.append('g')
-            .selectAll('g')
-            .data(nodes)
-            .enter().append('g')
-            .call(d3.drag()
-                .on('start', dragstarted)
-                .on('drag', dragged)
-                .on('end', dragended));
+        let idCounter = nodes.length;
 
-        node.append('circle')
-            .attr('r', 20)
-            .attr('fill', (d,i) => i === 0 ? 'var(--primary)' : 'var(--secondary)')
-            .on('mousemove', showTooltip)
-            .on('mouseout', hideTooltip);
+        function update() {
+            link = link.data(links);
+            link.exit().remove();
+            link = link.enter().append('line')
+                .attr('stroke', '#ccc')
+                .merge(link);
 
-        node.append('text')
-            .text(d => d.label)
-            .attr('text-anchor', 'middle')
-            .attr('dy', '.35em')
-            .attr('class', 'text-xs pointer-events-none');
+            node = node.data(nodes, d => d.id);
+            const nodeEnter = node.enter().append('g')
+                .call(d3.drag()
+                    .on('start', dragstarted)
+                    .on('drag', dragged)
+                    .on('end', dragended));
+
+            nodeEnter.append('circle')
+                .attr('r', d => d.id === 'root' ? baseRadius * 1.2 : baseRadius)
+                .attr('fill', (d,i) => d.id === 'root' ? 'var(--primary)' : 'var(--secondary)')
+                .on('mousemove', showTooltip)
+                .on('mouseout', hideTooltip);
+
+            nodeEnter.append('text')
+                .text('+')
+                .attr('class', 'text-xs cursor-pointer select-none')
+                .attr('x', d => (d.id === 'root' ? baseRadius*1.2 : baseRadius) * 0.7)
+                .attr('y', d => -(d.id === 'root' ? baseRadius*1.2 : baseRadius) * 0.7)
+                .on('click', expandNode);
+
+            nodeEnter.append('text')
+                .text(d => d.label)
+                .attr('text-anchor', 'middle')
+                .attr('dy', d => (d.id === 'root' ? baseRadius*1.2 : baseRadius) + 12)
+                .attr('class', 'text-xs pointer-events-none');
+
+            node = nodeEnter.merge(node);
+
+            simulation.nodes(nodes);
+            simulation.force('link').links(links);
+            simulation.alpha(1).restart();
+        }
+
+        update();
 
         simulation.on('tick', () => {
             link.attr('x1', d => d.source.x)
@@ -99,6 +121,24 @@
         function dragstarted(event) { if (!event.active) simulation.alphaTarget(0.3).restart(); event.subject.fx = event.subject.x; event.subject.fy = event.subject.y; }
         function dragged(event) { event.subject.fx = event.x; event.subject.fy = event.y; }
         function dragended(event) { if (!event.active) simulation.alphaTarget(0); event.subject.fx = null; event.subject.fy = null; }
+
+        async function expandNode(event, d) {
+            event.stopPropagation();
+            const res = await fetch('/expand', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ text: d.label })
+            });
+            if (!res.ok) return;
+            const result = await res.json();
+            const concepts = result.concepts || [];
+            concepts.forEach(c => {
+                const newNode = { id: idCounter++, label: c.short_name, info: c };
+                nodes.push(newNode);
+                links.push({ source: d.id, target: newNode.id });
+            });
+            update();
+        }
     </script>
     {% endif %}
 </body>
