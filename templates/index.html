@@ -50,14 +50,16 @@
     <script>
         const data = {{ concepts | tojson | safe }};
         const rootText = {{ user_text | tojson | safe }};
+        const summary = {{ summary | tojson | safe }};
         const graphDiv = document.getElementById('graph');
         let width = graphDiv.clientWidth;
         let height = graphDiv.clientHeight;
         let baseRadius = Math.max(20, Math.min(width, height) * 0.05);
-        const nodes = [{id: 'root', label: rootText, fx: width/2, fy: height/2, depth: 0}];
+        const rootLabel = summary?.title || rootText;
+        const nodes = [{id: 'root', label: rootLabel, fx: width/2, fy: height/2, depth: 0}];
         const links = [];
         const labelMap = new Map();
-        labelMap.set(rootText.toLowerCase(), 'root');
+        labelMap.set(rootLabel.toLowerCase(), 'root');
         let idCounter = 0;
         data.forEach(c => {
             const key = c.short_name.toLowerCase();
@@ -156,11 +158,19 @@
 
         const tooltip = document.getElementById('tooltip');
         function showTooltip(event, d) {
-            if(!d.info) return;
-            tooltip.innerHTML = `<h2 class='font-bold mb-1'>${d.label}</h2>` +
-                `<p class='text-sm mb-1'><strong>Definition:</strong> ${d.info.definition}</p>` +
-                `<p class='text-sm mb-1'>${d.info.explanation}</p>` +
-                `<p class='text-sm'><strong>Start here:</strong> ${d.info.start_here}</p>`;
+            tooltip.innerHTML = '';
+            if(d.id === 'root' && summary) {
+                tooltip.innerHTML = `<h2 class='font-bold mb-1'>${summary.title}</h2>` +
+                    `<p class='text-sm mb-1'>${summary.description}</p>` +
+                    `<p class='text-sm italic'>Source idea</p>`;
+            } else if(d.info) {
+                tooltip.innerHTML = `<h2 class='font-bold mb-1'>${d.label}</h2>` +
+                    `<p class='text-sm mb-1'><strong>Definition:</strong> ${d.info.definition}</p>` +
+                    `<p class='text-sm mb-1'>${d.info.explanation}</p>` +
+                    `<p class='text-sm'><strong>Start here:</strong> ${d.info.start_here}</p>`;
+            } else {
+                return;
+            }
             tooltip.style.left = (event.pageX + 10) + 'px';
             tooltip.style.top = (event.pageY + 10) + 'px';
             tooltip.classList.remove('hidden');
