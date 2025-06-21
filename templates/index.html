@@ -56,9 +56,20 @@
         let baseRadius = Math.max(20, Math.min(width, height) * 0.05);
         const nodes = [{id: 'root', label: rootText, fx: width/2, fy: height/2, depth: 0}];
         const links = [];
-        data.forEach((c, i) => {
-            nodes.push({id: i, label: c.short_name, info: c, depth: 1});
-            links.push({source: 'root', target: i});
+        const labelMap = new Map();
+        labelMap.set(rootText.toLowerCase(), 'root');
+        let idCounter = 0;
+        data.forEach(c => {
+            const key = c.short_name.toLowerCase();
+            let targetId;
+            if (labelMap.has(key)) {
+                targetId = labelMap.get(key);
+            } else {
+                targetId = idCounter++;
+                nodes.push({id: targetId, label: c.short_name, info: c, depth: 1});
+                labelMap.set(key, targetId);
+            }
+            links.push({source: 'root', target: targetId});
         });
         const svg = d3.select('#graph').append('svg')
             .attr('width', width)
@@ -81,7 +92,7 @@
             return baseRadius * Math.max(0.5, 1 - depth * 0.15);
         }
 
-        let idCounter = nodes.length;
+        // idCounter already tracks the next numeric id for new nodes
 
         function update() {
             link = link.data(links);
@@ -172,9 +183,17 @@
                 const result = await res.json();
                 const concepts = result.concepts || [];
                 concepts.forEach(c => {
-                    const newNode = { id: idCounter++, label: c.short_name, info: c, depth: (d.depth || 0) + 1 };
-                    nodes.push(newNode);
-                    links.push({ source: d.id, target: newNode.id });
+                    const key = c.short_name.toLowerCase();
+                    let targetId;
+                    if (labelMap.has(key)) {
+                        targetId = labelMap.get(key);
+                    } else {
+                        targetId = idCounter++;
+                        const newNode = { id: targetId, label: c.short_name, info: c, depth: (d.depth || 0) + 1 };
+                        nodes.push(newNode);
+                        labelMap.set(key, targetId);
+                    }
+                    links.push({ source: d.id, target: targetId });
                 });
                 update();
             } catch (e) {
