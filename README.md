@@ -1,6 +1,7 @@
 # See Also
 
 A simple Flask web application that generates related concepts for any input text using an LLM.
+The interface is styled with **Tailwind CSS** for a clean and modern look.
 
 ## Setup
 
