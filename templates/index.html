@@ -91,7 +91,11 @@
         const inputWrapper = document.getElementById('inputWrapper');
         const showInputBtn = document.getElementById('showInput');
 
-        let showDefinitions = false;
+        let showDefinitions = localStorage.getItem('showDefinitions') === 'true';
+        defsBtn.textContent = showDefinitions ? 'Hide Definitions' : 'Show Definitions';
+        window.addEventListener('load', () => {
+            if (showDefinitions && window.updateNodes) window.updateNodes();
+        });
 
         const palettes = {
             category10: d3.schemeCategory10,
@@ -184,6 +188,7 @@
         defsBtn.addEventListener('click', () => {
             showDefinitions = !showDefinitions;
             defsBtn.textContent = showDefinitions ? 'Hide Definitions' : 'Show Definitions';
+            localStorage.setItem('showDefinitions', showDefinitions);
             if (window.updateNodes) window.updateNodes();
         });
 
@@ -295,9 +300,8 @@
                 const words = textEl.text().split(/\s+/).reverse();
                 let word, line = [], lineNumber = 0;
                 const lineHeight = 1.1; // ems
-                const y = textEl.attr('y');
-                const dy = parseFloat(textEl.attr('dy')) || 0;
-                let tspan = textEl.text(null).append('tspan').attr('x', 0).attr('y', y).attr('dy', dy + 'em');
+                const y = parseFloat(textEl.attr('y')) || 0;
+                let tspan = textEl.text(null).append('tspan').attr('x', 0).attr('y', y);
                 while (word = words.pop()) {
                     line.push(word);
                     tspan.text(line.join(' '));
@@ -305,7 +309,7 @@
                         line.pop();
                         tspan.text(line.join(' '));
                         line = [word];
-                        tspan = textEl.append('tspan').attr('x', 0).attr('y', y).attr('dy', ++lineNumber * lineHeight + dy + 'em').text(word);
+                        tspan = textEl.append('tspan').attr('x', 0).attr('y', y).attr('dy', `${++lineNumber * lineHeight}em`).text(word);
                     }
                 }
             });
@@ -348,13 +352,14 @@
             nodeEnter.append('text')
                 .attr('class', 'definition text-[10px] pointer-events-none')
                 .attr('text-anchor', 'middle')
-                .attr('dy', d => (d.id === 'root' ? baseRadius*1.3 : radiusByDepth(d.depth || 1)) + 24);
+                .attr('y', d => (d.id === 'root' ? baseRadius*1.3 : radiusByDepth(d.depth || 1)) + 24);
 
             node = nodeEnter.merge(node);
             node.select('circle')
                 .attr('fill', d => d.id === 'root' ? 'var(--primary)' : (d.color || 'var(--secondary)'));
 
             node.select('text.definition')
+                .attr('y', d => (d.id === 'root' ? baseRadius*1.3 : radiusByDepth(d.depth || 1)) + 24)
                 .text(d => showDefinitions && d.info ? d.info.definition : '')
                 .each(function(d){ if(showDefinitions && d.info){ wrapText(d3.select(this), 120); } else { d3.select(this).selectAll('tspan').remove(); }});
 
