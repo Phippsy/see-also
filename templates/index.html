@@ -60,6 +60,8 @@
         const links = [];
         const labelMap = new Map();
         labelMap.set(rootLabel.toLowerCase(), 'root');
+        const colorPalette = d3.schemeCategory10;
+        let colorIndex = 0;
         let idCounter = 0;
         data.forEach(c => {
             const key = c.short_name.toLowerCase();
@@ -68,7 +70,8 @@
                 targetId = labelMap.get(key);
             } else {
                 targetId = idCounter++;
-                nodes.push({id: targetId, label: c.short_name, info: c, depth: 1});
+                nodes.push({id: targetId, label: c.short_name, info: c, depth: 1, color: colorPalette[colorIndex % colorPalette.length]});
+                colorIndex++;
                 labelMap.set(key, targetId);
             }
             links.push({source: 'root', target: targetId});
@@ -112,7 +115,7 @@
 
             nodeEnter.append('circle')
                 .attr('r', d => d.id === 'root' ? baseRadius * 1.3 : radiusByDepth(d.depth || 1))
-                .attr('fill', (d,i) => d.id === 'root' ? 'var(--primary)' : 'var(--secondary)')
+                .attr('fill', d => d.id === 'root' ? 'var(--primary)' : (d.color || 'var(--secondary)'))
                 .on('mousemove', showTooltip)
                 .on('mouseout', hideTooltip);
 
@@ -199,7 +202,14 @@
                         targetId = labelMap.get(key);
                     } else {
                         targetId = idCounter++;
-                        const newNode = { id: targetId, label: c.short_name, info: c, depth: (d.depth || 0) + 1 };
+                        const newNode = {
+                            id: targetId,
+                            label: c.short_name,
+                            info: c,
+                            depth: (d.depth || 0) + 1,
+                            color: d.id === 'root' ? colorPalette[colorIndex % colorPalette.length] : d.color
+                        };
+                        if (d.id === 'root') colorIndex++;
                         nodes.push(newNode);
                         labelMap.set(key, targetId);
                     }
