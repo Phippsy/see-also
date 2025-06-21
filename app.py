@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request
+from flask import Flask, render_template, request, jsonify
 import json
 from gpt import complete_structured
 
@@ -22,6 +22,16 @@ def index():
             data = json.loads(raw_response)
             concepts = data.get('concepts', [])
     return render_template('index.html', concepts=concepts, user_text=user_text)
+
+
+@app.route('/expand', methods=['POST'])
+def expand():
+    data = request.get_json(silent=True) or {}
+    text = data.get('text', '')
+    if not text:
+        return jsonify({'error': 'no text provided'}), 400
+    raw_response = complete_structured(text, developer_message=RELATED_PROMPT)
+    return jsonify(json.loads(raw_response))
 
 if __name__ == '__main__':
     app.run(debug=True)
