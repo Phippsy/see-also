@@ -55,6 +55,13 @@
                 <button type="submit" class="px-4 py-2 bg-[var(--primary)] text-white rounded hover:bg-indigo-700">Generate</button>
             </form>
             <div class="flex items-center space-x-2">
+                <select id="paletteSelect" class="p-2 border rounded">
+                    <option value="category10">Default</option>
+                    <option value="monochromatic">Monochromatic</option>
+                    <option value="analogous">Analogous</option>
+                    <option value="complementary">Complementary</option>
+                    <option value="triadic">Triadic</option>
+                </select>
                 <button id="clearGraph" type="button" class="px-3 py-2 bg-[var(--secondary)] text-white rounded hover:bg-sky-700 hidden">Clear</button>
                 <button id="toggleTheme" type="button" class="px-3 py-2 border rounded">
                     <svg id="themeIcon" xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 24 24" fill="currentColor"></svg>
@@ -72,6 +79,15 @@
         const themeBtn = document.getElementById('toggleTheme');
         const themeIcon = document.getElementById('themeIcon');
         const clearBtn = document.getElementById('clearGraph');
+        const paletteSelect = document.getElementById('paletteSelect');
+
+        const palettes = {
+            category10: d3.schemeCategory10,
+            monochromatic: ['#4f46e5', '#6366f1', '#818cf8', '#a5b4fc'],
+            analogous: ['#0ea5e9', '#6366f1', '#8b5cf6', '#f43f5e'],
+            complementary: ['#6366f1', '#f43f5e', '#10b981', '#f59e0b'],
+            triadic: ['#6366f1', '#10b981', '#f59e0b', '#f43f5e']
+        };
 
         const spinner = `<svg class="animate-spin h-4 w-4 mr-2 inline-block text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path></svg>`;
 
@@ -97,6 +113,17 @@
             document.body.classList.add('dark');
         }
         updateThemeIcon();
+
+        let paletteName = localStorage.getItem('palette') || 'category10';
+        paletteSelect.value = paletteName;
+
+        paletteSelect.addEventListener('change', () => {
+            paletteName = paletteSelect.value;
+            localStorage.setItem('palette', paletteName);
+            window.colorPalette = palettes[paletteName];
+            document.documentElement.style.setProperty('--primary', window.colorPalette[0]);
+            if (window.applyPalette) window.applyPalette();
+        });
 
         themeBtn.addEventListener('click', () => {
             const dark = document.body.classList.toggle('dark');
@@ -128,7 +155,8 @@
         const links = [];
         const labelMap = new Map();
         labelMap.set(rootLabel.toLowerCase(), 'root');
-        const colorPalette = d3.schemeCategory10;
+        window.colorPalette = palettes[paletteName];
+        document.documentElement.style.setProperty('--primary', window.colorPalette[0]);
         let colorIndex = 0;
         let idCounter = 0;
         data.forEach(c => {
@@ -138,7 +166,7 @@
                 targetId = labelMap.get(key);
             } else {
                 targetId = idCounter++;
-                nodes.push({id: targetId, label: c.short_name, info: c, depth: 1, color: colorPalette[colorIndex % colorPalette.length]});
+                nodes.push({id: targetId, label: c.short_name, info: c, depth: 1, color: window.colorPalette[colorIndex % window.colorPalette.length]});
                 colorIndex++;
                 labelMap.set(key, targetId);
             }
@@ -164,6 +192,28 @@
         function radiusByDepth(depth) {
             return baseRadius * Math.max(0.5, 1 - depth * 0.15);
         }
+
+        function applyPalette() {
+            colorIndex = 0;
+            nodes.forEach(n => {
+                if (n.id === 'root') return;
+                if (n.depth === 1) {
+                    n.color = window.colorPalette[colorIndex % window.colorPalette.length];
+                    colorIndex++;
+                }
+            });
+            nodes.forEach(n => {
+                if (n.depth > 1) {
+                    const parentLink = links.find(l => l.target === n.id);
+                    if (parentLink) {
+                        const parentNode = nodes.find(x => x.id === parentLink.source);
+                        if (parentNode) n.color = parentNode.color;
+                    }
+                }
+            });
+            update();
+        }
+        window.applyPalette = applyPalette;
 
         // idCounter already tracks the next numeric id for new nodes
 
@@ -224,13 +274,13 @@
             labelMap.set(rootLabel.toLowerCase(), 'root');
             colorIndex = 0;
             idCounter = 0;
-            update();
+            applyPalette();
         }
 
         clearBtn.addEventListener('click', resetGraph);
         clearBtn.classList.remove('hidden');
 
-        update();
+        applyPalette();
         window.addEventListener('resize', resize);
 
         simulation.on('tick', () => {
@@ -291,7 +341,7 @@
                             label: c.short_name,
                             info: c,
                             depth: (d.depth || 0) + 1,
-                            color: d.id === 'root' ? colorPalette[colorIndex % colorPalette.length] : d.color
+                            color: d.id === 'root' ? window.colorPalette[colorIndex % window.colorPalette.length] : d.color
                         };
                         if (d.id === 'root') colorIndex++;
                         nodes.push(newNode);
