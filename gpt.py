@@ -2,7 +2,7 @@ import sys
 import os
 from openai import OpenAI, AzureOpenAI
 from pydantic import BaseModel, Field
-from typing import List, Optional
+from typing import List
 
 AIPHORIA_AZURE_OPENAI_ENDPOINT = os.getenv("AIPHORIA_AZURE_OPENAI_ENDPOINT")
 AIPHORIA_AZURE_OPENAI_DEPLOYMENT = os.getenv("AIPHORIA_AZURE_OPENAI_DEPLOYMENT")
@@ -40,6 +40,12 @@ class RelatedConcept(BaseModel):
 
 class RelatedConceptsResponse(BaseModel):
     concepts: List[RelatedConcept] = Field(..., description="List of related concepts")
+
+
+class SubmissionSummary(BaseModel):
+    """Short summary of the user's submission."""
+    title: str = Field(..., description="Brief title of the concept overall")
+    description: str = Field(..., description="Brief description of the submission")
 
 def complete_structured(message, developer_message = "You are a helpful assistant. You always respond using a JSON object containing a response key, where you write your freetext response, and an 'observations' key, where you may include any additional observations about the user query or the nature of the conversation. ", max_completion_tokens = 4096, output_model = RelatedConceptsResponse):
     completion = client.beta.chat.completions.parse(

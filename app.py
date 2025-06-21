@@ -1,6 +1,6 @@
 from flask import Flask, render_template, request, jsonify
 import json
-from gpt import complete_structured
+from gpt import complete_structured, SubmissionSummary
 
 app = Flask(__name__)
 
@@ -11,17 +11,32 @@ try:
 except FileNotFoundError:
     RELATED_PROMPT = ""
 
+# Prompt for summarising the original text
+try:
+    with open('prompts/summary.txt', 'r') as f:
+        SUMMARY_PROMPT = f.read()
+except FileNotFoundError:
+    SUMMARY_PROMPT = ""
+
 @app.route('/', methods=['GET', 'POST'])
 def index():
     concepts = None
     user_text = ''
+    summary = None
     if request.method == 'POST':
         user_text = request.form.get('text', '')
         if user_text:
             raw_response = complete_structured(user_text, developer_message=RELATED_PROMPT)
             data = json.loads(raw_response)
             concepts = data.get('concepts', [])
-    return render_template('index.html', concepts=concepts, user_text=user_text)
+
+            summary_raw = complete_structured(
+                user_text,
+                developer_message=SUMMARY_PROMPT,
+                output_model=SubmissionSummary,
+            )
+            summary = json.loads(summary_raw)
+    return render_template('index.html', concepts=concepts, user_text=user_text, summary=summary)
 
 
 @app.route('/expand', methods=['POST'])
