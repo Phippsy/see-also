@@ -50,10 +50,13 @@
 <body class="bg-[var(--bg)] min-h-screen">
     <div class="p-4">
         <div class="flex items-start justify-between space-x-4">
-            <form method="post" class="flex items-start flex-1 space-x-2">
-                <textarea id="text" name="text" rows="2" placeholder="Enter a concept" required class="p-2 border rounded w-full flex-grow">{{ user_text }}</textarea>
-                <button type="submit" class="px-4 py-2 bg-[var(--primary)] text-white rounded hover:bg-indigo-700">Generate</button>
-            </form>
+            <div id="inputWrapper" class="flex items-start flex-1 space-x-2">
+                <form id="textForm" method="post" class="flex items-start flex-1 space-x-2 w-full">
+                    <textarea id="text" name="text" rows="2" placeholder="Enter a concept" required class="p-2 border rounded flex-grow">{{ user_text }}</textarea>
+                    <button type="submit" class="px-4 py-2 bg-[var(--primary)] text-white rounded hover:bg-indigo-700">Generate</button>
+                </form>
+            </div>
+            <button id="showInput" type="button" class="px-3 py-2 border rounded hidden mr-2">Show Input</button>
             <div class="flex items-center space-x-2">
                 <div id="paletteDropdown" class="relative">
                     <button id="paletteButton" type="button" class="p-2 border rounded flex items-center space-x-1">
@@ -71,7 +74,7 @@
     </div>
     <div id="graph" class="relative w-full h-[600px]"></div>
     <div id="tooltip" class="absolute bg-white border rounded shadow-lg p-4 hidden"></div>
-    <div id="notification" class="fixed top-4 right-4 bg-gray-800 text-white px-4 py-2 rounded shadow-lg hidden"></div>
+    <div id="notification" class="fixed bottom-4 left-4 bg-gray-800 text-white px-4 py-2 rounded shadow-lg hidden"></div>
 
     <script>
         const notifyEl = document.getElementById('notification');
@@ -83,6 +86,8 @@
         const paletteMenu = document.getElementById('paletteMenu');
         const palettePreview = document.getElementById('palettePreview');
         const paletteDropdown = document.getElementById('paletteDropdown');
+        const inputWrapper = document.getElementById('inputWrapper');
+        const showInputBtn = document.getElementById('showInput');
 
         const palettes = {
             category10: d3.schemeCategory10,
@@ -159,6 +164,19 @@
             }
         });
 
+        function collapseInput() {
+            inputWrapper.classList.add('hidden');
+            showInputBtn.classList.remove('hidden');
+        }
+
+        function expandInput() {
+            inputWrapper.classList.remove('hidden');
+            showInputBtn.classList.add('hidden');
+            textEl.focus();
+        }
+
+        showInputBtn.addEventListener('click', expandInput);
+
         themeBtn.addEventListener('click', () => {
             const dark = document.body.classList.toggle('dark');
             localStorage.setItem('theme', dark ? 'dark' : 'light');
@@ -167,8 +185,10 @@
 
         const savedText = localStorage.getItem('lastText');
         if (!textEl.value && savedText) textEl.value = savedText;
+        const hasConcepts = {{ 'true' if concepts else 'false' }};
+        if (hasConcepts) collapseInput();
 
-        const formEl = document.querySelector('form');
+        const formEl = document.getElementById('textForm');
         formEl.addEventListener('submit', () => {
             showLoading();
             localStorage.setItem('lastText', textEl.value);
@@ -286,6 +306,8 @@
                 .attr('class', 'text-xs pointer-events-none');
 
             node = nodeEnter.merge(node);
+            node.select('circle')
+                .attr('fill', d => d.id === 'root' ? 'var(--primary)' : (d.color || 'var(--secondary)'));
 
             simulation.nodes(nodes);
             simulation.force('link').links(links);
