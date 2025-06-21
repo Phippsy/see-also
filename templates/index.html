@@ -27,6 +27,8 @@
         svg text { fill: currentColor; }
         body.dark svg text { fill: #ffffff; }
         body.dark #tooltip { background-color: #374151; color: #f9fafb; border-color: #4b5563; }
+        #mobileOverlay { z-index: 50; }
+        body.dark #mobileOverlay div { background-color: #374151; color: #f9fafb; }
         @keyframes pulse {
             0%, 100% {
                 transform: scale(1);
@@ -83,6 +85,12 @@
     </div>
     <div id="graph" class="relative w-full h-[60vh] sm:h-[600px]"></div>
     <div id="tooltip" class="absolute bg-white border rounded shadow-lg p-4 hidden"></div>
+    <div id="mobileOverlay" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white text-black rounded p-4 max-h-full overflow-y-auto relative w-full max-w-md">
+            <button id="closeOverlay" class="absolute top-2 right-2 text-xl">&times;</button>
+            <div id="mobileTooltipContent"></div>
+        </div>
+    </div>
     <div id="notification" class="fixed bottom-4 left-4 bg-gray-800 text-white px-4 py-2 rounded shadow-lg hidden"></div>
 
     <script>
@@ -99,6 +107,16 @@
         const inputWrapper = document.getElementById('inputWrapper');
         const showInputBtn = document.getElementById('showInput');
         const hideInputBtn = document.getElementById('hideInput');
+        const overlay = document.getElementById('mobileOverlay');
+        const overlayContent = document.getElementById('mobileTooltipContent');
+        const closeOverlayBtn = document.getElementById('closeOverlay');
+
+        function isMobile() {
+            return window.matchMedia('(max-width: 640px)').matches;
+        }
+
+        closeOverlayBtn.addEventListener('click', () => overlay.classList.add('hidden'));
+        overlay.addEventListener('click', e => { if(e.target === overlay) overlay.classList.add('hidden'); });
 
         let showDefinitions = localStorage.getItem('showDefinitions') === 'true';
         defsBtn.textContent = showDefinitions ? 'Hide Definitions' : 'Show Definitions';
@@ -346,7 +364,8 @@
                 .attr('r', d => d.id === 'root' ? baseRadius * 1.3 : radiusByDepth(d.depth || 1))
                 .attr('fill', d => d.id === 'root' ? 'var(--primary)' : (d.color || 'var(--secondary)'))
                 .on('mousemove', showTooltip)
-                .on('mouseout', hideTooltip);
+                .on('mouseout', hideTooltip)
+                .on('click', handleCircleClick);
 
             nodeEnter.append('text')
                 .text('+')
@@ -430,11 +449,22 @@
             } else {
                 return;
             }
-            tooltip.style.left = (event.pageX + 10) + 'px';
-            tooltip.style.top = (event.pageY + 10) + 'px';
-            tooltip.classList.remove('hidden');
+            if (isMobile()) {
+                overlayContent.innerHTML = tooltip.innerHTML;
+                overlay.classList.remove('hidden');
+            } else {
+                tooltip.style.left = (event.pageX + 10) + 'px';
+                tooltip.style.top = (event.pageY + 10) + 'px';
+                tooltip.classList.remove('hidden');
+            }
         }
-        function hideTooltip() { tooltip.classList.add('hidden'); }
+        function hideTooltip() { if(!isMobile()) tooltip.classList.add('hidden'); }
+
+        function handleCircleClick(event, d) {
+            if (isMobile()) {
+                showTooltip(event, d);
+            }
+        }
         function dragstarted(event) { if (!event.active) simulation.alphaTarget(0.3).restart(); event.subject.fx = event.subject.x; event.subject.fy = event.subject.y; }
         function dragged(event) { event.subject.fx = event.x; event.subject.fy = event.y; }
         function dragended(event) { if (!event.active) simulation.alphaTarget(0); event.subject.fx = null; event.subject.fy = null; }
