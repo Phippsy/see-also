@@ -10,4 +10,6 @@ These will be referred to as "related concepts". Related concepts might be
 
 ... etc - anything goes
 
+The user may provide text representing a single topic or containing multiple ideas. If the text contains multiple ideas, ensure that you explore as many connecting concepts as possible.
+
 You will return related concepts as a JSON object.
