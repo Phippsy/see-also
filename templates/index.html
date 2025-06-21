@@ -17,6 +17,23 @@
         }
         #tooltip { pointer-events: none; }
         #notification { transition: opacity 0.3s; }
+        @keyframes pulse {
+            0%, 100% {
+                transform: scale(1);
+                filter: brightness(100%);
+                opacity: 1;
+            }
+            50% {
+                transform: scale(1.2);
+                filter: brightness(130%);
+                opacity: 0.6;
+            }
+        }
+        .pulsing {
+            animation: pulse 1s ease-in-out infinite;
+            transform-box: fill-box;
+            transform-origin: center;
+        }
     </style>
     <script src="https://d3js.org/d3.v7.min.js"></script>
 </head>
@@ -185,6 +202,8 @@
 
         async function expandNode(event, d) {
             event.stopPropagation();
+            const circle = d3.select(event.target.parentNode).select('circle');
+            circle.classed('pulsing', true);
             showNotification('Generating concepts...');
             try {
                 const res = await fetch('/expand', {
@@ -219,7 +238,8 @@
             } catch (e) {
                 showNotification('Error generating concepts', true);
                 setTimeout(hideNotification, 2000);
-                return;
+            } finally {
+                circle.classed('pulsing', false);
             }
             hideNotification();
         }
