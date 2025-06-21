@@ -24,6 +24,9 @@
         }
         #tooltip { pointer-events: none; }
         #notification { transition: opacity 0.3s; }
+        svg text { fill: currentColor; }
+        body.dark svg text { fill: #ffffff; }
+        body.dark #tooltip { background-color: #374151; color: #f9fafb; border-color: #4b5563; }
         @keyframes pulse {
             0%, 100% {
                 transform: scale(1);
@@ -53,7 +56,9 @@
             </form>
             <div class="flex items-center space-x-2">
                 <button id="clearGraph" type="button" class="px-3 py-2 bg-[var(--secondary)] text-white rounded hover:bg-sky-700 hidden">Clear</button>
-                <button id="toggleTheme" type="button" class="px-3 py-2 border rounded">Dark mode</button>
+                <button id="toggleTheme" type="button" class="px-3 py-2 border rounded">
+                    <svg id="themeIcon" xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 24 24" fill="currentColor"></svg>
+                </button>
             </div>
         </div>
     </div>
@@ -65,6 +70,7 @@
         const notifyEl = document.getElementById('notification');
         const textEl = document.getElementById('text');
         const themeBtn = document.getElementById('toggleTheme');
+        const themeIcon = document.getElementById('themeIcon');
         const clearBtn = document.getElementById('clearGraph');
 
         const spinner = `<svg class="animate-spin h-4 w-4 mr-2 inline-block text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path></svg>`;
@@ -79,12 +85,23 @@
         }
         function hideNotification() { notifyEl.classList.add('hidden'); }
 
+        const moonSvg = '<path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z" />';
+        const sunSvg = '<path d="M12 18a6 6 0 100-12 6 6 0 000 12z"/><path d="M12 1v2m0 18v2m11-11h-2M3 12H1m16.95 6.95l-1.414-1.414M6.464 6.464L5.05 5.05m0 13.9l1.414-1.414m13.9-13.9l-1.414 1.414"/>';
+
+        function updateThemeIcon() {
+            const dark = document.body.classList.contains('dark');
+            themeIcon.innerHTML = dark ? sunSvg : moonSvg;
+        }
+
         if (localStorage.getItem('theme') === 'dark') {
             document.body.classList.add('dark');
         }
+        updateThemeIcon();
+
         themeBtn.addEventListener('click', () => {
-            document.body.classList.toggle('dark');
-            localStorage.setItem('theme', document.body.classList.contains('dark') ? 'dark' : 'light');
+            const dark = document.body.classList.toggle('dark');
+            localStorage.setItem('theme', dark ? 'dark' : 'light');
+            updateThemeIcon();
         });
 
         const savedText = localStorage.getItem('lastText');
@@ -158,6 +175,7 @@
                 .merge(link);
 
             node = node.data(nodes, d => d.id);
+            node.exit().remove();
             const nodeEnter = node.enter().append('g')
                 .call(d3.drag()
                     .on('start', dragstarted)
@@ -202,6 +220,10 @@
         function resetGraph() {
             nodes.splice(1);
             links.length = 0;
+            labelMap.clear();
+            labelMap.set(rootLabel.toLowerCase(), 'root');
+            colorIndex = 0;
+            idCounter = 0;
             update();
         }
 
