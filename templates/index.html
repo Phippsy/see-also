@@ -56,11 +56,11 @@
 </head>
 <body class="bg-[var(--bg)] min-h-screen">
     <div class="p-4">
-        <div class="flex items-start justify-between space-x-4">
-            <div id="inputWrapper" class="flex items-start flex-1 space-x-2">
-                <form id="textForm" method="post" class="flex items-start flex-1 space-x-2 w-full">
-                    <textarea id="text" name="text" rows="2" placeholder="Enter a concept" required class="p-2 border rounded flex-grow">{{ user_text }}</textarea>
-                    <button type="submit" class="px-4 py-2 bg-[var(--primary)] text-white rounded hover:bg-indigo-700">Generate</button>
+        <div class="flex flex-col sm:flex-row items-start justify-between space-y-2 sm:space-y-0 sm:space-x-4">
+            <div id="inputWrapper" class="flex flex-col sm:flex-row items-start flex-1 space-y-2 sm:space-y-0 sm:space-x-2">
+                <form id="textForm" method="post" class="flex flex-col sm:flex-row items-start flex-1 space-y-2 sm:space-y-0 sm:space-x-2 w-full">
+                    <textarea id="text" name="text" rows="2" placeholder="Enter a concept" required class="p-2 border rounded w-full flex-grow">{{ user_text }}</textarea>
+                    <button type="submit" class="px-4 py-2 bg-[var(--primary)] text-white rounded hover:bg-indigo-700 w-full sm:w-auto">Generate</button>
                 </form>
                 <button id="hideInput" type="button" class="text-xs text-gray-500 underline self-center">Hide</button>
             </div>
@@ -81,7 +81,7 @@
             </div>
         </div>
     </div>
-    <div id="graph" class="relative w-full h-[600px]"></div>
+    <div id="graph" class="relative w-full h-[60vh] sm:h-[600px]"></div>
     <div id="tooltip" class="absolute bg-white border rounded shadow-lg p-4 hidden"></div>
     <div id="notification" class="fixed bottom-4 left-4 bg-gray-800 text-white px-4 py-2 rounded shadow-lg hidden"></div>
 
